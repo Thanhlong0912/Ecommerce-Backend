@@ -1,4 +1,5 @@
 const Order = require("../models/OrderProduct");
+const Product = require("../models/ProductModel");
 
 const createOrder = (newOrder) => {
   return new Promise(async (resolve, reject) => {
@@ -15,27 +16,86 @@ const createOrder = (newOrder) => {
       user,
     } = newOrder;
     try {
-      const createdOrder = await Order.create({
-        orderItems,
-        shippingAddress: {
-          fullName,
-          address,
-          city,
-          phone,
-        },
-        paymentMethod,
-        itemsPrice,
-        shippingPrice,
-        totalPrice,
-        user: user,
+      orderItems.map(async (order) => {
+        const productData = await Product.findOneAndUpdate(
+          {
+            _id: order.product,
+            countInStock: { $gte: order.amount },
+          },
+          {
+            $inc: {
+              countInStock: -order.amount,
+              selled: +order.amount,
+            },
+          },
+          { new: true }
+        );
+        if (productData) {
+          const createdOrder = await Order.create({
+            orderItems,
+            shippingAddress: {
+              fullName,
+              address,
+              city,
+              phone,
+            },
+            paymentMethod,
+            itemsPrice,
+            shippingPrice,
+            totalPrice,
+            user: user,
+          });
+          if (createdOrder) {
+            return {
+              status: "OK",
+              message: "SUCCESS",
+            };
+          }
+        } else {
+          return {
+            status: "OK",
+            message: "ERR",
+            id: order.product,
+          };
+        }
       });
-      if (createdOrder) {
+      const results = await Promise.all(promises);
+      const newData = results && results.filter((item) => item.id);
+      if (newData.length) {
         resolve({
-          status: "OK",
-          message: "SUCCESS",
-          data: createdOrder,
+          status: "ERR",
+          message: `Sản phẩm với id${newData.join(",")} không đủ hàng`,
         });
       }
+      resolve({
+        status: "OK",
+        message: "success",
+      });
+    } catch (e) {
+      console.log("e", e);
+      reject(e);
+    }
+  });
+};
+
+const getOrderDetails = (id) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const order = await Order.findOne({
+        user: id,
+      });
+      if (order === null) {
+        resolve({
+          status: "ERR",
+          message: "The order is not defined",
+        });
+      }
+
+      resolve({
+        status: "OK",
+        message: "SUCESSS",
+        data: order,
+      });
     } catch (e) {
       console.log("e", e);
       reject(e);
@@ -45,4 +105,5 @@ const createOrder = (newOrder) => {
 
 module.exports = {
   createOrder,
+  getOrderDetails,
 };
