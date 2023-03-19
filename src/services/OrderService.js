@@ -16,7 +16,7 @@ const createOrder = (newOrder) => {
       user,
     } = newOrder;
     try {
-      orderItems.map(async (order) => {
+      const promises = orderItems.map(async (order) => {
         const productData = await Product.findOneAndUpdate(
           {
             _id: order.product,
@@ -64,7 +64,7 @@ const createOrder = (newOrder) => {
       if (newData.length) {
         resolve({
           status: "ERR",
-          message: `Sản phẩm với id${newData.join(",")} không đủ hàng`,
+          message: `San pham voi id${newData.join(",")} khong du hang`,
         });
       }
       resolve({
@@ -78,10 +78,24 @@ const createOrder = (newOrder) => {
   });
 };
 
-const getOrderDetails = (id) => {
+// const deleteManyProduct = (ids) => {
+//     return new Promise(async (resolve, reject) => {
+//         try {
+//             await Product.deleteMany({ _id: ids })
+//             resolve({
+//                 status: 'OK',
+//                 message: 'Delete product success',
+//             })
+//         } catch (e) {
+//             reject(e)
+//         }
+//     })
+// }
+
+const getAllOrderDetails = (id) => {
   return new Promise(async (resolve, reject) => {
     try {
-      const order = await Order.findOne({
+      const order = await Order.find({
         user: id,
       });
       if (order === null) {
@@ -103,7 +117,57 @@ const getOrderDetails = (id) => {
   });
 };
 
+const getOrderDetails = (id) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const order = await Order.findById({
+        _id: id,
+      });
+      if (order === null) {
+        resolve({
+          status: "ERR",
+          message: "The order is not defined",
+        });
+      }
+
+      resolve({
+        status: "OK",
+        message: "SUCESSS",
+        data: order,
+      });
+    } catch (e) {
+      console.log("e", e);
+      reject(e);
+    }
+  });
+};
+
+const cancelOrderDetails = (id) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const order = await Order.findByIdAndDelete(id);
+      if (order === null) {
+        resolve({
+          status: "ERR",
+          message: "The order is not defined",
+        });
+      }
+
+      resolve({
+        status: "OK",
+        message: "SUCESSS",
+        data: order,
+      });
+    } catch (e) {
+      console.log("e", e);
+      reject(e);
+    }
+  });
+};
+
 module.exports = {
   createOrder,
+  getAllOrderDetails,
   getOrderDetails,
+  cancelOrderDetails,
 };
